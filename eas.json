@@ -7,6 +7,10 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "EXPO_ANDROID_JSC": "true",
+        "EXPO_USE_JSC": "true"
       }
     },
     "production": {

@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "602d82aa-0fdb-4cdd-a536-387ad5f181f9"
+      }
+    },
+    "owner": "cgaodao",
+    "android": {
+      "package": "com.privatechat.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0f"
+      }
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.privatechat.app"
+    },
+    "name": "PrivateChat",
+    "slug": "privatechat-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0f"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-av",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PrivateChat needs access to your photos to send images."
+        }
+      ],
+      "expo-local-authentication"
+    ],
+    "jsEngine": "jsc"
+  }
+}
