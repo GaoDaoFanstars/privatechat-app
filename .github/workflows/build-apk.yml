@@ -28,10 +28,14 @@ jobs:
       - name: Prebuild Android
         run: npx expo prebuild --platform android
 
-      - name: Patch build files for Kotlin 2.0 compat
+      - name: Override settings.gradle with fixed Kotlin/KSP versions
+        run: |
+          cp android/settings.gradle android/settings.gradle.bak
+          cp settings.gradle.patched android/settings.gradle 2>/dev/null || true
+
+      - name: Fix Gradle to 8.7
         run: |
           cd android
-          # 用 Gradle 8.7（自带 Kotlin 1.9.x，兼容 RN 的 Kotlin 版本）
           cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
@@ -42,7 +46,6 @@ jobs:
           zipStorePath=wrapper/dists
           EOF
 
-          # gradle.properties 基础设置
           cat > gradle.properties << 'PROP'
           org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m
           org.gradle.parallel=true
@@ -52,19 +55,8 @@ jobs:
           hermesEnabled=false
           PROP
 
-          # 在 settings.gradle 里加 Kotlin 插件版本管理
-          echo '' >> settings.gradle
-          echo 'pluginManagement {' >> settings.gradle
-          echo '    plugins {' >> settings.gradle
-          echo '        id("org.jetbrains.kotlin.android") version "2.0.21"' >> settings.gradle  
-          echo '        id("com.google.devtools.ksp") version "2.0.21-1.0-28"' >> settings.gradle
-          echo '    }' >> settings.gradle
-          echo '}' >> settings.gradle
-
       - name: Build APK
-        run: |
-          cd android
-          ./gradlew assembleRelease --no-daemon 2>&1
+        run: cd android && ./gradlew assembleRelease --no-daemon 2>&1
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
