@@ -28,47 +28,42 @@ jobs:
       - name: Prebuild Android
         run: npx expo prebuild --platform android
 
-      - name: Fix Gradle version to 8.x
+      - name: Patch gradle for Kotlin compatibility
         run: |
           cd android
+          # 用 Gradle 9.0（自带 Kotlin 2.2）
           cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          distributionUrl=https\://services.gradle.org/distributions/gradle-9.0-bin.zip
           networkTimeout=10000
           validateDistributionUrl=true
           zipStoreBase=GRADLE_USER_HOME
           zipStorePath=wrapper/dists
           EOF
-          cat > gradle.properties << 'PROP'
-          org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m
-          org.gradle.parallel=true
-          android.useAndroidX=true
-          android.enableJetifier=true
-          newArchEnabled=false
-          hermesEnabled=false
-          PROP
 
-      - name: Show gradle version
-        run: cd android && ./gradlew --version
+          # 设置环境变量跳过 Kotlin metadata 版本检查
+          echo "kotlin.compiler.skip-metadata-version-check=true" >> gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> gradle.properties
+          echo "org.gradle.parallel=true" >> gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          echo "newArchEnabled=false" >> gradle.properties
+          echo "hermesEnabled=false" >> gradle.properties
 
-      - name: Build APK (retry with debug)
+          # 在 app/build.gradle 添加 Kotlin 版本覆盖
+          echo "" >> app/build.gradle
+          echo "kotlin { jvmToolchain(17) }" >> app/build.gradle
+
+      - name: Build APK with Kotlin compat flags
+        env:
+          KOTLIN_COMPILER_ARGS: -Xskip-metadata-version-check -Xskip-prerelease-check
+          GRADLE_OPTS: -Dkotlin.compiler.skip-metadata-version-check=true
         run: |
           cd android
-          ./gradlew assembleRelease 2>&1 || true
-          echo "=== CHECKING FOR ERRORS ==="
-          cat build/reports/problems/problems-report.html 2>/dev/null | head -100
-          ls -la app/build/outputs/ 2>/dev/null
+          ./gradlew assembleRelease --no-daemon -Dkotlin.compiler.skip-metadata-version-check=true 2>&1
 
-      - name: Debug - show errors
-        if: failure()
-        run: |
-          cd android
-          find build/reports -name "*.html" 2>/dev/null | head -10
-          ls -la app/build/outputs/apk/release/ 2>/dev/null || echo "No APK output"
-
-      - name: Upload APK (if exists)
-        if: success()
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: privatechat-release.apk
