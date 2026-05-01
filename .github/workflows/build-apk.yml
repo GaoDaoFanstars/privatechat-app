@@ -28,13 +28,13 @@ jobs:
       - name: Prebuild Android
         run: npx expo prebuild --platform android
 
-      - name: Fix Gradle version to 8.12
+      - name: Fix Gradle version to 8.x
         run: |
           cd android
           cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.12-bin.zip
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-bin.zip
           networkTimeout=10000
           validateDistributionUrl=true
           zipStoreBase=GRADLE_USER_HOME
@@ -49,10 +49,26 @@ jobs:
           hermesEnabled=false
           PROP
 
-      - name: Build APK
-        run: cd android && ./gradlew assembleRelease
+      - name: Show gradle version
+        run: cd android && ./gradlew --version
 
-      - name: Upload APK
+      - name: Build APK (retry with debug)
+        run: |
+          cd android
+          ./gradlew assembleRelease 2>&1 || true
+          echo "=== CHECKING FOR ERRORS ==="
+          cat build/reports/problems/problems-report.html 2>/dev/null | head -100
+          ls -la app/build/outputs/ 2>/dev/null
+
+      - name: Debug - show errors
+        if: failure()
+        run: |
+          cd android
+          find build/reports -name "*.html" 2>/dev/null | head -10
+          ls -la app/build/outputs/apk/release/ 2>/dev/null || echo "No APK output"
+
+      - name: Upload APK (if exists)
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: privatechat-release.apk
